@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasmania — Transmission Network & Data Centre Connection Points</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/esri-leaflet/3.0.12/esri-leaflet.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --g:#10b981; --gg:rgba(16,185,129,.5);
+  --a:#f59e0b; --ag:rgba(245,158,11,.4);
+  --b:#3b82f6; --r:#ef4444; --gr:#94a3b8;
+  --navy:#0b1220; --panel:#0f1729; --panel2:#16203a;
+  --line:#243049; --txt:#e6edf6; --dim:#8da2c0;
+  --acc:#38bdf8;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,Arial,sans-serif;background:var(--navy);color:var(--txt);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+.header{
+  position:relative;
+  background:linear-gradient(110deg,#0b1220 0%,#13203b 55%,#0d1830 100%);
+  border-bottom:1px solid rgba(56,189,248,.2);
+  padding:10px 18px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;z-index:1001;box-shadow:0 2px 20px rgba(0,0,0,.4);
+}
+.header::after{content:'';position:absolute;left:0;bottom:-1px;height:1px;width:100%;background:linear-gradient(90deg,transparent,var(--acc),transparent);opacity:.5;}
+.logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#10b981,#38bdf8);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(56,189,248,.35);flex-shrink:0;}
+.logo svg{width:18px;height:18px;}
+.hd-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:#fff;letter-spacing:.01em;}
+.hd-sub{font-size:10px;color:var(--dim);margin-top:2px;}
+.hd-left{display:flex;align-items:center;gap:12px;}
+.toggle{display:flex;gap:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:3px;}
+.tbtn{font-size:11px;font-weight:600;padding:4px 11px;border-radius:5px;border:none;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;}
+.tbtn:hover{color:var(--txt);}
+.tbtn.active{background:linear-gradient(135deg,#10b981,#38bdf8);color:#021018;box-shadow:0 0 12px rgba(56,189,248,.35);}
+
+.main{display:flex;flex:1;overflow:hidden;position:relative;}
+#map{flex:1;}
+.vignette{position:absolute;inset:0;pointer-events:none;z-index:500;box-shadow:inset 0 0 160px rgba(2,8,20,.5);}
+
+/* SIDEBAR */
+.sb{
+  width:306px;flex-shrink:0;z-index:1000;
+  background:linear-gradient(180deg,rgba(15,23,41,.93),rgba(11,18,32,.97));
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-left:1px solid rgba(56,189,248,.15);
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:-6px 0 30px rgba(0,0,0,.4);
+}
+.ss{padding:11px 14px;border-bottom:1px solid var(--line);}
+.st{font-family:'Space Grotesk',sans-serif;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.13em;color:var(--acc);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.st::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--acc);box-shadow:0 0 7px var(--acc);}
+
+.lr{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.ld{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.lt{font-size:11.5px;color:#c3d2e8;line-height:1.3;}
+.ll{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+
+.det{padding:12px 14px;flex:1;overflow-y:auto;}
+.de{color:var(--dim);font-size:11.5px;text-align:center;margin-top:24px;line-height:1.7;padding:16px;border:1px dashed var(--line);border-radius:10px;}
+.de svg{width:28px;height:28px;opacity:.35;margin-bottom:8px;}
+.dn{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:#fff;margin-bottom:2px;line-height:1.2;}
+.dr{font-size:10.5px;color:var(--dim);margin-bottom:9px;letter-spacing:.02em;}
+.db{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:18px;margin-bottom:10px;letter-spacing:.02em;}
+.db::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 5px currentColor;}
+.dw{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);gap:6px;}
+.dw:last-of-type{border-bottom:none;}
+.dk_{font-size:10px;color:var(--dim);flex-shrink:0;padding-top:1px;font-weight:500;}
+.dv{font-size:11px;font-weight:600;color:var(--txt);text-align:right;line-height:1.4;}
+.dnote{margin-top:10px;padding:9px 11px;border-radius:8px;font-size:11.5px;line-height:1.65;border:1px solid rgba(255,255,255,.06);}
+.dq{margin-top:8px;padding:9px 11px;border-radius:8px;font-size:11.5px;line-height:1.65;background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(16,185,129,.07));border:1px solid rgba(56,189,248,.25);color:#cfe7fb;}
+.dql{font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--acc);margin-bottom:4px;display:flex;align-items:center;gap:4px;}
+.dql::before{content:'◆';font-size:6px;}
+
+/* Loading overlay */
+.load-overlay{position:absolute;top:0;left:0;right:306px;bottom:0;background:rgba(11,18,32,.6);z-index:600;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;pointer-events:none;}
+.load-spinner{width:36px;height:36px;border:3px solid rgba(56,189,248,.2);border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;}
+.load-txt{font-size:12px;color:var(--acc);font-weight:600;letter-spacing:.05em;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Pulse rings */
+@keyframes pulse-ring{0%{transform:scale(.7);opacity:.8;}70%{transform:scale(2.5);opacity:0;}100%{transform:scale(2.5);opacity:0;}}
+.pring{border-radius:50%;animation:pulse-ring 2.8s cubic-bezier(.2,.6,.4,1) infinite;}
+
+/* Leaflet */
+.leaflet-tooltip.tip{background:rgba(11,18,32,.92);backdrop-filter:blur(8px);border:1px solid rgba(56,189,248,.35);border-radius:8px;color:var(--txt);font-family:'Inter',sans-serif;font-size:11px;padding:7px 10px;box-shadow:0 6px 20px rgba(0,0,0,.5);line-height:1.5;}
+.leaflet-tooltip.tip::before{display:none;}
+.tn{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#fff;margin-bottom:2px;}
+.tf{color:var(--dim);font-size:10px;}
+.tk{font-weight:700;font-size:9.5px;margin-top:2px;}
+.leaflet-control-attribution{background:rgba(11,18,32,.7)!important;color:var(--dim)!important;font-size:9px!important;}
+.leaflet-control-attribution a{color:var(--acc)!important;}
+.leaflet-bar a{background:rgba(15,23,41,.9)!important;color:var(--txt)!important;border-color:var(--line)!important;}
+.leaflet-bar a:hover{background:rgba(56,189,248,.2)!important;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(56,189,248,.2);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="hd-left">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2L4.5 13.5h6L11 22l8.5-11.5h-6L13 2z" fill="#021018"/></svg></div>
+    <div>
+      <div class="hd-title">Tasmania Grid Connection Atlas</div>
+      <div class="hd-sub">Live data from LISTmap / TasNetworks · Substations &amp; lines in exact position · Click any element for detail</div>
+    </div>
+  </div>
+  <div class="toggle">
+    <button class="tbtn active" onclick="setMap('light',this)">Light</button>
+    <button class="tbtn" onclick="setMap('dark',this)">Night</button>
+    <button class="tbtn" onclick="setMap('topo',this)">Terrain</button>
+  </div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+  <div class="vignette"></div>
+  <div class="load-overlay" id="loadOverlay">
+    <div class="load-spinner"></div>
+    <div class="load-txt">Loading live TasNetworks data from LISTmap…</div>
+  </div>
+
+  <div class="sb">
+    <div class="ss">
+      <div class="st">Substation Tiers</div>
+      <div class="lr"><div class="ld" style="background:#10b981;box-shadow:0 0 7px #10b981;"></div><div class="lt"><b style="color:#10b981;">★ Top 3</b> — George Town, Hadspen, Sheffield</div></div>
+      <div class="lr"><div class="ld" style="background:#f59e0b;box-shadow:0 0 7px #f59e0b;"></div><div class="lt"><b style="color:#f59e0b;">Tier 2</b> — Boyer, Railton, Burnie</div></div>
+      <div class="lr"><div class="ld" style="background:#3b82f6;box-shadow:0 0 5px #3b82f6;"></div><div class="lt">Strong grid — no viable DC land</div></div>
+      <div class="lr"><div class="ld" style="background:#ef4444;"></div><div class="lt">Eliminated</div></div>
+      <div class="lr"><div class="ld" style="background:#94a3b8;"></div><div class="lt">Other TasNetworks substations</div></div>
+    </div>
+    <div class="ss">
+      <div class="st">Transmission Lines</div>
+      <div class="ll"><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="#a855f7" stroke-width="3.5"/></svg><div class="lt">220kV backbone (LIST live data)</div></div>
+      <div class="ll"><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="#f43f5e" stroke-width="2"/></svg><div class="lt">110kV network (LIST live data)</div></div>
+      <div class="ll"><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="#10b981" stroke-width="2.5" stroke-dasharray="8 5"/></svg><div class="lt">NWTD new 220kV — 2030/31</div></div>
+      <div class="ll"><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 4"/></svg><div class="lt">Basslink 400kV DC</div></div>
+    </div>
+    <div class="ss">
+      <div class="st">5km Search Radius</div>
+      <div style="font-size:10.5px;color:var(--dim);line-height:1.65;">Green rings = 5km from Top 3. Amber rings = 5km from Tier 2. Sites inside the green rings have the most viable connection-asset economics.</div>
+    </div>
+    <div class="det" id="det">
+      <div class="de">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>
+        <div>Click a <b style="color:#10b981;">substation</b> or <b style="color:#a855f7;">transmission line</b> for fault levels, augmentation trajectory, and your meeting question.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── MAP ───────────────────────────────────────────────────────────────────
+const map = L.map('map',{center:[-41.8,146.5],zoom:8,zoomControl:true});
+map.zoomControl.setPosition('bottomleft');
+
+map.createPane('linesPane');   map.getPane('linesPane').style.zIndex   = 410;
+map.createPane('ringsPane');   map.getPane('ringsPane').style.zIndex   = 415;
+map.createPane('markersPane'); map.getPane('markersPane').style.zIndex = 460;
+map.createPane('labelsPane');  map.getPane('labelsPane').style.zIndex  = 470;
+
+const basemaps = {
+  light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap · © CARTO',subdomains:'abcd',maxZoom:19}),
+  dark:  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap · © CARTO',subdomains:'abcd',maxZoom:19}),
+  topo:  L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'© OpenTopoMap',maxZoom:17}),
+};
+basemaps.light.addTo(map);
+function setMap(n,btn){Object.values(basemaps).forEach(t=>{if(map.hasLayer(t))map.removeLayer(t);});basemaps[n].addTo(map);document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+
+// ── PROJECT DATA keyed by likely LIST name ────────────────────────────────
+// Fuzzy matching — handles "George Town", "George Town Sub", etc.
+const projData = {
+  'George Town':   {tier:'t1',rank:1,fl110:'14.58 / 12.91 kA',fl220:'12.81 / 12.52 kA — 3 TX points in AMZ',aug:'At ceiling. RIT-T underway for loads above ~210MW NPR threshold.',con:'NPR threshold ~210MW cumulative new load. Bell Bay Powerfuels (300MW H₂) queued ahead.',q:'How much firm headroom remains below the 210MW NPR threshold, accounting for Bell Bay Powerfuels?',note:'Three TX connection points — George Town, TEMCO, Comalco — all in the Bell Bay AMZ. Strongest industrial grid precinct in northern Tasmania.',nc:'#0c2a1e'},
+  'Hadspen':       {tier:'t1',rank:2,fl110:'14.65 kA — highest in Tasmania',fl220:'12.51 kA',aug:'None needed at TX level.',con:'Distribution zone over firm capacity — bypassed by direct TX connection.',q:'Can you confirm a direct TX connection is assessed independently of the distribution constraint — and what is the firm headroom at transmission level?',note:'Two separate 110kV feeds (George Town + Poatina) make this Tasmania\'s strongest node. Perth/Prospect Vale corridor ~5–8km. Largest regional labour pool.',nc:'#0c2a1e'},
+  'Sheffield':     {tier:'t1',rank:3,fl110:'12.13 kA',fl220:'12.92 kA',aug:'HIGH — NWTD Stage 1 new 220kV double-circuit. FID Aug 2025. Delivery 2030/31.',con:'Mostly rural land in Kentish LGA. Rezoning likely required.',q:'What is current firm capacity at Sheffield and expected uplift post-NWTD? Is this a preferred connection point for 100–150MW?',note:'The NWTD Stage 1 junction node. New 220kV corridor runs Palmerston → Sheffield → Burnie. Already Tier 1, materially stronger post-2030.',nc:'#0c2a1e'},
+  'Boyer':         {tier:'t2',rank:4,fl110:'10.78 kA',fl220:'Not available — 110kV only',aug:'Indirect. No specific funded programme.',con:'110kV only. Grid does not transform like Burnie or Sheffield.',q:'Firm capacity headroom at Boyer and any known limitations on the Derwent Valley 110kV corridor?',note:'Former Norske Skog paper mill — large established industrial site 40km north of Hobart. Only credible southern candidate.',nc:'#2a1a0c'},
+  'Railton':       {tier:'t2',rank:5,fl110:'8.80 kA',fl220:'Not available — 110kV only',aug:'Indirect NWTD benefit via Sheffield–Devonport corridor.',con:'110kV only. Moderate fault level.',q:'Current firm capacity at Railton — does NWTD Stage 1 provide meaningful uplift at this node?',note:'Former Boral cement works. On Sheffield→Devonport 110kV corridor. Indirect NWTD benefit post-2030.',nc:'#2a1a0c'},
+  'Burnie':        {tier:'t2',rank:6,fl110:'7.52 / 7.05 kA',fl220:'5.24 kA',aug:'HIGH — Marinus Link (750MW) at adjacent Heybridge + NWTD 220kV by 2030/31.',con:'Supply transformers end-of-life (renewal 2031–33). Moderate grid today.',q:'Current firm capacity, post-NWTD + Marinus Link uplift, and transformer renewal timeline?',note:'Marinus Link lands at adjacent Heybridge. NWTD terminates here. Port industrial precinct. Transforms by 2030/31.',nc:'#2a1a0c'},
+  'Chapel Street': {tier:'notable',fl110:'15.06 kA',fl220:'N/A',aug:'At ceiling.',con:'Hobart CBD — no viable DC land.',q:null,note:'Highest fault level in Tasmania. Hobart CBD — no industrial land at any scale.',nc:'#11233f'},
+  'Palmerston':    {tier:'notable',fl110:'13.76 kA',fl220:'14.02 kA',aug:'Main 220kV spine junction.',con:'Remote Central Highlands — no labour, land or access.',q:null,note:'Very high fault level as main 220kV junction. Completely remote.',nc:'#11233f'},
+  'Risdon':        {tier:'notable',fl110:'13.62 kA',fl220:'N/A',aug:'Strong grid.',con:'Former smelter — brownfield + metro pricing.',q:null,note:'Strongest substation with any industrial-type land. Former Nyrstar smelter — brownfield + metro pricing rule it out.',nc:'#11233f'},
+  'New Norfolk':   {tier:'notable',fl110:'11.94 kA',fl220:'N/A',aug:'Moderate.',con:'Limited industrial land.',q:null,note:'Strong grid, limited industrial land. Boyer is the better southern option.',nc:'#11233f'},
+  'Smithton':      {tier:'elim',fl110:'2.98 kA — weakest viable node',fl220:'N/A',aug:'New 110kV spur (~$50–150M+). No funded programme.',con:'Bus coupler kept OPEN — N-1 compromised. Single spur, no return.',q:null,note:'ELIMINATED. Industrial land available but structurally weak grid — single spur, no return, bus coupler open.',nc:'#2e0f0f'},
+  'Port Latta':    {tier:'elim',fl110:'3.54 kA',fl220:'N/A',aug:'STATCOMs — reactive power only.',con:'Grid extremity. No industrial land.',q:null,note:'ELIMINATED. Remote spur — STATCOMs do not raise thermal capacity.',nc:'#2e0f0f'},
+  'Hampshire':     {tier:'elim',fl110:'3.40 kA',fl220:'N/A',aug:'None.',con:'Switching station only.',q:null,note:'ELIMINATED. Switching station — no substation or land.',nc:'#2e0f0f'},
+  'St Marys':      {tier:'elim',fl110:'1.12 kA — weakest in Tasmania',fl220:'N/A',aug:'None viable.',con:'East coast spur extremity.',q:null,note:'ELIMINATED. Weakest substation in Tasmania.',nc:'#2e0f0f'},
+  'Queenstown':    {tier:'elim',fl110:'3.00 kA',fl220:'N/A',aug:'None.',con:'Remote west coast.',q:null,note:'ELIMINATED. Remote west coast.',nc:'#2e0f0f'},
+};
+
+const TIER_C = {t1:'#10b981',t2:'#f59e0b',notable:'#3b82f6',elim:'#ef4444',other:'#94a3b8'};
+const TIER_R = {t1:12,t2:10,notable:8,elim:7,other:6};
+
+function matchName(raw){
+  if(!raw) return null;
+  const n = raw.trim();
+  // Exact match first
+  if(projData[n]) return n;
+  // Try starts-with match
+  for(const k of Object.keys(projData)){
+    if(n.toLowerCase().startsWith(k.toLowerCase()) || k.toLowerCase().startsWith(n.toLowerCase())) return k;
+  }
+  // Partial contains
+  for(const k of Object.keys(projData)){
+    if(n.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(n.toLowerCase())) return k;
+  }
+  return null;
+}
+
+function renderSubDetail(rawName, matchedKey){
+  const d = document.getElementById('det');
+  const s = matchedKey ? projData[matchedKey] : null;
+  const displayName = rawName || matchedKey || 'Unknown';
+
+  if(!s){
+    d.innerHTML = `
+      <div class="dn">${displayName}</div>
+      <div class="dr">TasNetworks Substation</div>
+      <div class="db" style="background:rgba(148,163,184,.15);color:#94a3b8;">Not in shortlist</div>
+      <div class="dnote" style="background:rgba(255,255,255,.04);color:#a0b0c8;">This substation is in the official LIST dataset but is not on the current data centre shortlist. It may be a distribution substation, power station, or has been assessed and deprioritised.</div>`;
+    return;
+  }
+
+  const bc = {t1:{bg:'rgba(16,185,129,.15)',tx:'#34d399'},t2:{bg:'rgba(245,158,11,.15)',tx:'#fbbf24'},notable:{bg:'rgba(59,130,246,.15)',tx:'#60a5fa'},elim:{bg:'rgba(239,68,68,.15)',tx:'#f87171'},other:{bg:'rgba(148,163,184,.15)',tx:'#cbd5e1'}};
+  const b = bc[s.tier]||bc.other;
+  const tl = {t1:`★ Shortlisted · Rank ${s.rank} of 6`,t2:`Shortlisted · Tier 2 · Rank ${s.rank}`,notable:'Notable · strong grid, no DC land',elim:'Eliminated',other:'Context'}[s.tier]||'';
+
+  d.innerHTML = `
+    <div class="dn">${displayName}</div>
+    <div class="dr">TasNetworks Substation · LIST official position</div>
+    <div class="db" style="background:${b.bg};color:${b.tx};">${tl}</div>
+    <div class="dw"><span class="dk_">110kV fault level</span><span class="dv">${s.fl110}</span></div>
+    <div class="dw"><span class="dk_">220kV fault level</span><span class="dv">${s.fl220}</span></div>
+    <div class="dw"><span class="dk_">Augmentation</span><span class="dv" style="font-size:10px;max-width:170px;">${s.aug}</span></div>
+    <div class="dw"><span class="dk_">Key constraint</span><span class="dv" style="font-size:10px;max-width:170px;">${s.con}</span></div>
+    <div class="dnote" style="background:${s.nc};color:#dbe6f4;">${s.note}</div>
+    ${s.q?`<div class="dq"><div class="dql">Your question for Aaron · Friday</div>${s.q}</div>`:''}
+  `;
+}
+
+// ── LOAD SUBSTATIONS FROM LIST API (Layer 60) ─────────────────────────────
+const circleRenderer = L.svg({pane:'markersPane'});
+const lineRenderer   = L.svg({pane:'linesPane'});
+const pulseMarkers   = {};
+
+// Track top-3 lat/lng for circles
+const top3Positions = {};
+let loadedCount = 0;
+const expectedLayers = 2;
+
+function checkLoaded(){
+  loadedCount++;
+  if(loadedCount >= expectedLayers){
+    document.getElementById('loadOverlay').style.display = 'none';
+    // Draw 5km circles once we have positions from live data
+    drawCircles();
+  }
+}
+
+function drawCircles(){
+  // Top 3 green circles (use stored positions if available, else fallback coords)
+  const top3Fallback = [{lat:-41.093,lng:146.877},{lat:-41.509,lng:147.061},{lat:-41.389,lng:146.347}];
+  const t3 = ['George Town','Hadspen','Sheffield'];
+  t3.forEach((k,i)=>{
+    const pos = top3Positions[k] || top3Fallback[i];
+    L.circle([pos.lat,pos.lng],{radius:5000,color:'#10b981',weight:2.5,opacity:0.9,fillColor:'#10b981',fillOpacity:0.06,dashArray:'9 7',pane:'linesPane',renderer:lineRenderer,interactive:false}).addTo(map);
+  });
+  // Tier 2 amber circles
+  const t2Fallback = [{lat:-42.689,lng:147.031},{lat:-41.347,lng:146.441},{lat:-41.053,lng:145.912}];
+  const t2keys = ['Boyer','Railton','Burnie'];
+  t2keys.forEach((k,i)=>{
+    const pos = top3Positions[k] || t2Fallback[i];
+    L.circle([pos.lat,pos.lng],{radius:5000,color:'#f59e0b',weight:1.5,opacity:0.45,fillColor:'#f59e0b',fillOpacity:0.04,dashArray:'6 8',pane:'linesPane',renderer:lineRenderer,interactive:false}).addTo(map);
+  });
+}
+
+// Load substations via esri-leaflet FeatureLayer
+const subLayer = L.esri.featureLayer({
+  url:'https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/60',
+  pane:'markersPane',
+  pointToLayer: function(geojsonPoint, latlng){
+    const rawName = geojsonPoint.properties.NAME || '';
+    const mkey = matchName(rawName);
+    const tier = mkey ? (projData[mkey].tier || 'other') : 'other';
+    const color = TIER_C[tier] || '#94a3b8';
+    const radius = TIER_R[tier] || 6;
+
+    // Store positions of key substations for circles
+    if(mkey && (projData[mkey].tier==='t1'||projData[mkey].tier==='t2')){
+      top3Positions[mkey] = {lat:latlng.lat,lng:latlng.lng};
+    }
+
+    // Pulse ring for top 3
+    if(tier==='t1'){
+      const ri = L.divIcon({className:'',html:`<div class="pring" style="width:30px;height:30px;background:radial-gradient(circle,rgba(16,185,129,.55) 0%,rgba(16,185,129,0) 70%);"></div>`,iconSize:[30,30],iconAnchor:[15,15]});
+      L.marker(latlng,{icon:ri,interactive:false,pane:'ringsPane'}).addTo(map);
+    }
+
+    const m = L.circleMarker(latlng,{
+      radius, fillColor:color, color:'#fff',
+      weight: tier==='t1'?2.5:tier==='t2'?2:1.2,
+      opacity:1, fillOpacity:tier==='t1'?1:tier==='t2'?0.9:0.7,
+      pane:'markersPane', renderer:circleRenderer,
+    });
+
+    // Apply glow to shortlisted
+    m.on('add',()=>{
+      if(m._path && (tier==='t1'||tier==='t2')){
+        m._path.style.filter = `drop-shadow(0 0 5px ${color})`;
+      }
+    });
+
+    // Label for shortlisted
+    if(tier==='t1'||tier==='t2'){
+      const data = projData[mkey];
+      const lbl = L.divIcon({
+        className:'',
+        html:`<span style="font-family:'Space Grotesk',sans-serif;font-size:${tier==='t1'?'12px':'11px'};font-weight:700;color:#0b1220;background:rgba(255,255,255,0.93);padding:2px 6px;border-radius:5px;white-space:nowrap;border:1.5px solid ${color};box-shadow:0 2px 8px rgba(0,0,0,.25),0 0 10px ${color}55;">${data.rank?data.rank+' · ':''}${mkey}</span>`,
+        iconSize:[240,22],iconAnchor:[-(radius+7),11]
+      });
+      L.marker(latlng,{icon:lbl,interactive:false,pane:'labelsPane'}).addTo(map);
+    }
+
+    const tl = {t1:'★ Top 3',t2:'Tier 2',notable:'Notable',elim:'Eliminated',other:'TasNetworks sub'}[tier]||'';
+    m.bindTooltip(`<div class="tn">${rawName||'Substation'}</div><div class="tf">${mkey&&projData[mkey].fl110?'110kV: '+projData[mkey].fl110:''}</div><div class="tk" style="color:${color};">${tl}</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});
+    m.on('click',()=>{renderSubDetail(rawName,mkey);map.panTo(latlng,{animate:true,duration:0.4});});
+
+    return m;
+  }
+});
+subLayer.addTo(map);
+subLayer.on('load', checkLoaded);
+// Fallback if esri doesn't fire load
+setTimeout(checkLoaded, 8000);
+
+// ── LOAD TRANSMISSION LINES FROM LIST API (Layer 61) ──────────────────────
+// Layer 61 = TasNetworks Transmission Lines (from TasNetworks via LIST)
+const lineLayer = L.esri.featureLayer({
+  url:'https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/61',
+  pane:'linesPane',
+  style: function(feature){
+    // Try to determine voltage from attributes
+    const attrs = feature.properties || {};
+    const volt = parseInt(attrs.VOLTAGE||attrs.voltage||attrs.VOLTS||attrs.volts||0);
+    if(volt >= 200) return {color:'#a855f7',weight:3.5,opacity:0.88,pane:'linesPane'};
+    if(volt >= 100) return {color:'#f43f5e',weight:2.2,opacity:0.78,pane:'linesPane'};
+    // Unknown voltage — style based on feature name if available
+    const name = (attrs.NAME||attrs.name||'').toLowerCase();
+    if(name.includes('220') || name.includes('500')) return {color:'#a855f7',weight:3.5,opacity:0.88,pane:'linesPane'};
+    // Default to 110kV red
+    return {color:'#f43f5e',weight:2.2,opacity:0.78,pane:'linesPane'};
+  },
+  onEachFeature: function(feature, layer){
+    const attrs = feature.properties || {};
+    const name = attrs.NAME || attrs.name || 'Transmission Line';
+    const volt = attrs.VOLTAGE || attrs.voltage || 'Unknown';
+    const over = () => layer.setStyle({opacity:1,weight:parseInt(volt)>=200?5:3.5});
+    const out  = () => layer.setStyle({opacity:parseInt(volt)>=200?0.88:0.78,weight:parseInt(volt)>=200?3.5:2.2});
+    layer.on('mouseover',over);
+    layer.on('mouseout',out);
+    layer.on('click',()=>{
+      const d = document.getElementById('det');
+      d.innerHTML = `
+        <div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.3);margin-bottom:10px;">
+          <svg width="20" height="5"><line x1="0" y1="2.5" x2="20" y2="2.5" stroke="#a855f7" stroke-width="3"/></svg>
+          <span style="font-size:11px;font-weight:700;color:#d8b4fe;">Transmission Line · LIST official route</span>
+        </div>
+        <div class="dn">${name}</div>
+        <div class="dr">Voltage: ${volt} kV · Source: TasNetworks via LISTmap Layer 61</div>
+        <div class="dnote" style="background:rgba(255,255,255,.04);color:#cdd9ec;margin-top:10px;">This line's route and position is sourced directly from TasNetworks via the LIST Infrastructure MapServer (Layer 61). Click a substation on either end for fault level data and project relevance.</div>
+      `;
+    });
+    layer.bindTooltip(`<div class="tn">${name}</div><div class="tf">${volt!=='Unknown'?volt+' kV · ':''} TasNetworks Transmission Line</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});
+  }
+});
+lineLayer.addTo(map);
+lineLayer.on('load', checkLoaded);
+setTimeout(checkLoaded, 8000);
+
+// ── MANUAL OVERLAYS (not in LIST — future or HVDC) ────────────────────────
+// NWTD new 220kV (Palmerston → Sheffield → Burnie) — funded 2025, not yet built
+L.polyline([[-41.85,146.62],[-41.65,146.53],[-41.50,146.43],[-41.39,146.35],[-41.22,146.13],[-41.07,145.97],[-41.05,145.91]],
+  {color:'#10b981',weight:3,opacity:0.9,dashArray:'10 7',pane:'linesPane',renderer:lineRenderer,interactive:true})
+  .bindTooltip('<div class="tn">NWTD — New 220kV Corridor (2030/31)</div><div class="tf">Palmerston → Sheffield → Burnie · FID August 2025 · Not yet built</div>',{sticky:true,className:'tip',direction:'top',opacity:1})
+  .on('click',()=>{
+    document.getElementById('det').innerHTML = `
+      <div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:rgba(16,185,129,.15);border:1px dashed rgba(16,185,129,.5);margin-bottom:10px;">
+        <svg width="26" height="5"><line x1="0" y1="2.5" x2="26" y2="2.5" stroke="#10b981" stroke-width="2.5" stroke-dasharray="8 5"/></svg>
+        <span style="font-size:11px;font-weight:700;color:#34d399;">NWTD New 220kV — Under Construction</span>
+      </div>
+      <div class="dn">Palmerston → Sheffield → Burnie</div>
+      <div class="dr">North West Transmission Developments Stage 1</div>
+      <div class="dw"><span class="dk_">Voltage</span><span class="dv">220kV (new double-circuit)</span></div>
+      <div class="dw"><span class="dk_">FID</span><span class="dv">August 2025 — confirmed</span></div>
+      <div class="dw"><span class="dk_">Construction from</span><span class="dv">2026</span></div>
+      <div class="dw"><span class="dk_">Delivery target</span><span class="dv">2030/31</span></div>
+      <div class="dnote" style="background:rgba(16,185,129,.1);color:#a7f3d0;border-color:rgba(16,185,129,.2);">The most significant new grid investment in Tasmania in decades. Built primarily to support Marinus Link (750MW HVDC to Victoria) landing at Heybridge adjacent to Burnie. Not yet reflected in the LIST official layers — route shown here is approximate based on TasNetworks APR 2025.</div>
+      <div class="dq"><div class="dql">Relevance to your project</div>Sheffield (Rank 3) is the NWTD junction node — fault level rises materially post-2030. Burnie (Rank 6) transforms from corridor-end node to major interconnector terminus. Both sites benefit significantly from this programme.</div>
+    `;
+  }).addTo(map);
+
+// Basslink 400kV DC (George Town → Victoria)
+L.polyline([[-41.07,146.87],[-40.75,147.25],[-40.40,147.70]],
+  {color:'#38bdf8',weight:2.5,opacity:0.65,dashArray:'6 5',pane:'linesPane',renderer:lineRenderer,interactive:true})
+  .bindTooltip('<div class="tn">Basslink — 400kV HVDC</div><div class="tf">George Town → Loy Yang (Victoria) · 500MW · Keppel Corp</div>',{sticky:true,className:'tip',direction:'top',opacity:1})
+  .on('click',()=>{
+    document.getElementById('det').innerHTML = `
+      <div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:rgba(56,189,248,.15);border:1px dashed rgba(56,189,248,.5);margin-bottom:10px;">
+        <svg width="26" height="5"><line x1="0" y1="2.5" x2="26" y2="2.5" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="6 5"/></svg>
+        <span style="font-size:11px;font-weight:700;color:#7dd3fc;">Basslink · 400kV DC Interconnector</span>
+      </div>
+      <div class="dn">Basslink — George Town → Victoria</div>
+      <div class="dr">500MW HVDC undersea interconnector</div>
+      <div class="dw"><span class="dk_">Voltage</span><span class="dv">400kV DC (HVDC)</span></div>
+      <div class="dw"><span class="dk_">Capacity</span><span class="dv">500MW</span></div>
+      <div class="dw"><span class="dk_">Owner</span><span class="dv">Keppel Corporation</span></div>
+      <div class="dw"><span class="dk_">Terminus</span><span class="dv">George Town Converter Station</span></div>
+      <div class="dnote" style="background:rgba(56,189,248,.08);color:#bae6fd;border-color:rgba(56,189,248,.2);">Basslink is the primary reason George Town and Bell Bay have Tasmania's strongest grid. The HVDC terminal at George Town adds 500MW of synchronous interconnection, stiffening the grid at that point and resulting in the 14.58 kA fault level.</div>
+      <div class="dq"><div class="dql">Relevance to your project</div>Directly supports your Rank 1 site (George Town / Bell Bay). Marinus Link (2030/31) adds a further 750MW at Burnie — transforming the northwest corridor.</div>
+    `;
+  }).addTo(map);
+
+// ── MAP LABELS ────────────────────────────────────────────────────────────
+function tag(lat,lng,html){
+  L.marker([lat,lng],{icon:L.divIcon({className:'',html,iconSize:[1,1],iconAnchor:[0,0]}),interactive:false,pane:'labelsPane'}).addTo(map);
+}
+tag(-40.50,147.45,`<span style="font-family:'Space Grotesk';font-size:10px;font-weight:700;color:#38bdf8;background:rgba(11,18,32,.85);padding:3px 8px;border-radius:5px;border:1px solid #38bdf8;white-space:nowrap;box-shadow:0 0 12px rgba(56,189,248,.3);">Basslink → Victoria</span>`);
+tag(-41.10,145.55,`<span style="font-family:'Space Grotesk';font-size:10px;font-weight:700;color:#a855f7;background:rgba(11,18,32,.85);padding:3px 8px;border-radius:5px;border:1px solid #a855f7;white-space:nowrap;box-shadow:0 0 12px rgba(168,85,247,.3);">Marinus Link terminal<br>Heybridge · 2030/31</span>`);
+tag(-41.19,146.00,`<span style="font-family:'Space Grotesk';font-size:9px;font-weight:700;color:#10b981;background:rgba(11,18,32,.85);padding:3px 7px;border-radius:5px;border:1px dashed #10b981;white-space:nowrap;box-shadow:0 0 10px rgba(16,185,129,.3);">── NWTD 2030/31 ──</span>`);
+
+map.fitBounds([[-43.6,144.5],[-40.3,148.5]],{padding:[20,20]});
+</script>
+</body>
+</html>
