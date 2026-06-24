@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasmania Utility Atlas — Data Centre Connection Points</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/esri-leaflet/3.0.12/esri-leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --g:#059669;--a:#d97706;--b:#2563eb;--r:#dc2626;--gr:#64748b;
+  --navy:#0d1526;--line:#1e2d47;--txt:#e2eaf6;--dim:#7a90ad;--acc:#38bdf8;
+  --water:#0ea5e9;--gas:#facc15;--fibre:#06b6d4;--fibre-prop:#fbbf24;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:var(--navy);color:var(--txt);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.hdr{background:linear-gradient(110deg,#0d1526,#152040 50%,#0e1930);border-bottom:1px solid rgba(56,189,248,.18);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:1001;box-shadow:0 2px 18px rgba(0,0,0,.45);position:relative;}
+.hdr::after{content:'';position:absolute;left:0;bottom:-1px;height:1px;width:100%;background:linear-gradient(90deg,transparent,var(--acc),transparent);opacity:.4;}
+.logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#059669,#38bdf8);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(56,189,248,.3);}
+.logo svg{width:17px;height:17px;}
+.hd-l{display:flex;align-items:center;gap:11px;}
+.hd-t{font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:700;color:#fff;}
+.hd-s{font-size:10px;color:var(--dim);margin-top:1px;}
+.tg{display:flex;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:3px;}
+.tb{font-size:11px;font-weight:600;padding:4px 11px;border-radius:5px;border:none;background:transparent;color:var(--dim);cursor:pointer;transition:all .18s;font-family:inherit;}
+.tb:hover{color:var(--txt);}
+.tb.on{background:linear-gradient(135deg,#059669,#38bdf8);color:#021018;box-shadow:0 0 10px rgba(56,189,248,.3);}
+
+.main{display:flex;flex:1;overflow:hidden;position:relative;}
+#map{flex:1;}
+
+/* ZOOM HINT */
+.zoom-hint{position:absolute;left:50%;transform:translateX(-50%);bottom:20px;background:rgba(11,18,32,.92);backdrop-filter:blur(10px);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:9px 16px;font-size:12px;color:var(--acc);box-shadow:0 6px 22px rgba(0,0,0,.5);z-index:600;pointer-events:none;transition:opacity .3s;display:flex;align-items:center;gap:8px;font-weight:500;}
+.zoom-hint.hidden{opacity:0;}
+.zoom-hint svg{width:16px;height:16px;}
+
+.sb{width:312px;flex-shrink:0;z-index:1000;background:linear-gradient(180deg,rgba(13,21,38,.94),rgba(11,17,30,.97));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-left:1px solid rgba(56,189,248,.14);display:flex;flex-direction:column;overflow:hidden;box-shadow:-5px 0 28px rgba(0,0,0,.4);}
+.ss{padding:11px 14px;border-bottom:1px solid var(--line);}
+.st{font-family:'Space Grotesk',sans-serif;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.13em;color:var(--acc);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.st::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--acc);box-shadow:0 0 6px var(--acc);}
+.conf-tag{display:inline-block;font-size:8.5px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:auto;letter-spacing:.04em;}
+.cnf-h{background:rgba(16,185,129,.18);color:#34d399;}
+.cnf-m{background:rgba(245,158,11,.18);color:#fbbf24;}
+.cnf-l{background:rgba(239,68,68,.18);color:#f87171;}
+
+.lr,.ll{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.ld{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.lt{font-size:11px;color:#b8cce0;line-height:1.3;flex:1;}
+
+.lyr-toggle{display:flex;align-items:center;justify-content:space-between;padding:5px 7px;border-radius:5px;cursor:pointer;transition:background .15s;}
+.lyr-toggle:hover{background:rgba(255,255,255,.04);}
+.lyr-toggle input{margin:0;}
+.lyr-name{font-size:11.5px;color:var(--txt);flex:1;margin-left:7px;}
+
+.det{padding:12px 14px;flex:1;overflow-y:auto;}
+.de{color:var(--dim);font-size:11px;text-align:center;margin-top:22px;line-height:1.75;padding:14px;border:1px dashed var(--line);border-radius:9px;}
+.de svg{width:26px;height:26px;opacity:.3;margin-bottom:8px;}
+.dn{font-family:'Space Grotesk',sans-serif;font-size:14.5px;font-weight:700;color:#fff;margin-bottom:2px;line-height:1.2;}
+.dr{font-size:10px;color:var(--dim);margin-bottom:8px;}
+.db{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:18px;margin-bottom:9px;}
+.db::before{content:'';width:4px;height:4px;border-radius:50%;background:currentColor;box-shadow:0 0 5px currentColor;}
+.dw{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line);gap:6px;}
+.dw:last-of-type{border-bottom:none;}
+.dk_{font-size:10px;color:var(--dim);flex-shrink:0;padding-top:1px;font-weight:500;}
+.dv{font-size:11px;font-weight:600;color:var(--txt);text-align:right;line-height:1.4;}
+.dnote{margin-top:9px;padding:9px 11px;border-radius:8px;font-size:11px;line-height:1.65;border:1px solid rgba(255,255,255,.06);}
+.dq{margin-top:7px;padding:9px 11px;border-radius:8px;font-size:11px;line-height:1.65;background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(5,150,105,.07));border:1px solid rgba(56,189,248,.22);color:#cde6fb;}
+.dql{font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--acc);margin-bottom:4px;display:flex;align-items:center;gap:4px;}
+.dql::before{content:'◆';font-size:6px;}
+
+.lod{position:absolute;top:0;left:0;right:312px;bottom:0;background:rgba(11,18,32,.55);z-index:600;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;pointer-events:none;transition:opacity .5s;}
+.lod.hidden{opacity:0;}
+.lsp{width:34px;height:34px;border:2.5px solid rgba(56,189,248,.2);border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;}
+.ltx{font-size:11px;color:var(--acc);font-weight:600;letter-spacing:.05em;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pr{0%{transform:scale(.7);opacity:.8;}70%{transform:scale(2.6);opacity:0;}100%{transform:scale(2.6);opacity:0;}}
+.pr{border-radius:50%;animation:pr 2.8s cubic-bezier(.2,.6,.4,1) infinite;}
+
+.leaflet-tooltip.tip{background:rgba(9,15,28,.93);backdrop-filter:blur(8px);border:1px solid rgba(56,189,248,.3);border-radius:7px;color:var(--txt);font-family:'Inter',sans-serif;font-size:11px;padding:7px 10px;box-shadow:0 4px 18px rgba(0,0,0,.5);line-height:1.5;}
+.leaflet-tooltip.tip::before{display:none;}
+.tn{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#fff;margin-bottom:2px;}
+.tf{color:var(--dim);font-size:10px;}
+.tk{font-weight:700;font-size:9.5px;margin-top:2px;}
+.leaflet-control-attribution{background:rgba(9,15,28,.7)!important;color:var(--dim)!important;font-size:9px!important;}
+.leaflet-control-attribution a{color:var(--acc)!important;}
+.leaflet-bar a{background:rgba(13,21,38,.92)!important;color:var(--txt)!important;border-color:var(--line)!important;}
+.leaflet-bar a:hover{background:rgba(56,189,248,.18)!important;}
+.leaflet-interactive:focus,.leaflet-interactive:active,
+.leaflet-container svg path:focus,.leaflet-container svg path:active,
+path.leaflet-interactive:focus,path.leaflet-interactive:active{outline:none!important;}
+.leaflet-container{outline:none!important;}
+.leaflet-marker-icon:focus,.leaflet-marker-icon:active{outline:none!important;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(56,189,248,.2);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hd-l">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2L4.5 13.5h6L11 22l8.5-11.5h-6L13 2z" fill="#021018"/></svg></div>
+    <div>
+      <div class="hd-t">Tasmania Utility Atlas — DC Connection Points</div>
+      <div class="hd-s">Power · Fibre · Water · Gas · LGA boundaries · Live LISTmap + TasNetworks data · Zoom in for site-level utility detail</div>
+    </div>
+  </div>
+  <div class="tg">
+    <button class="tb on" onclick="setMap('voyager',this)">Colour</button>
+    <button class="tb" onclick="setMap('light',this)">Light</button>
+    <button class="tb" onclick="setMap('dark',this)">Night</button>
+    <button class="tb" onclick="setMap('topo',this)">Terrain</button>
+  </div>
+</div>
+
+<div class="main">
+<div id="map"></div>
+<div class="zoom-hint" id="zoomhint">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5M11 8v6M8 11h6"/></svg>
+  Zoom in to a site to reveal water mains, sewer mains, gas distribution, and hydrants
+</div>
+<div class="lod" id="lod"><div class="lsp"></div><div class="ltx" id="lodtxt">Loading TasNetworks + utility data…</div></div>
+
+<div class="sb">
+  <div class="ss">
+    <div class="st">Power — Substations <span class="conf-tag cnf-h">VERIFIED</span></div>
+    <div class="lr"><div class="ld" style="background:#059669;box-shadow:0 0 7px #059669;"></div><div class="lt"><b style="color:#059669;">★ Top 3</b> — George Town, Hadspen, Sheffield</div></div>
+    <div class="lr"><div class="ld" style="background:#d97706;box-shadow:0 0 6px #d97706;"></div><div class="lt"><b style="color:#d97706;">Tier 2</b> — Boyer, Railton, Burnie</div></div>
+    <div class="lr"><div class="ld" style="background:#2563eb;box-shadow:0 0 5px #2563eb;"></div><div class="lt">Strong grid, no DC land</div></div>
+    <div class="lr"><div class="ld" style="background:#dc2626;"></div><div class="lt">Eliminated</div></div>
+    <div class="lr"><div class="ld" style="background:#64748b;"></div><div class="lt">Other TasNetworks subs</div></div>
+  </div>
+  <div class="ss">
+    <div class="st">Power — Transmission Lines <span class="conf-tag cnf-h">VERIFIED</span></div>
+    <div class="ll"><svg width="28" height="7"><line x1="0" y1="3.5" x2="28" y2="3.5" stroke="#7c3aed" stroke-width="3.5"/></svg><div class="lt">220kV backbone</div></div>
+    <div class="ll"><svg width="28" height="7"><line x1="0" y1="3.5" x2="28" y2="3.5" stroke="#dc2626" stroke-width="2"/></svg><div class="lt">110kV network</div></div>
+    <div class="ll"><svg width="28" height="7"><line x1="0" y1="3.5" x2="28" y2="3.5" stroke="#059669" stroke-width="2.5" stroke-dasharray="8 5"/></svg><div class="lt">NWTD new 220kV — 2030/31 <span class="conf-tag cnf-m">PLANNED</span></div></div>
+    <div class="ll"><svg width="28" height="7"><line x1="0" y1="3.5" x2="28" y2="3.5" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 4"/></svg><div class="lt">Basslink 400kV DC <span class="conf-tag cnf-m">APPROX</span></div></div>
+  </div>
+  <div class="ss">
+    <div class="st">Fibre &amp; Connectivity</div>
+    <div class="ll"><svg width="28" height="7"><line x1="0" y1="3.5" x2="28" y2="3.5" stroke="#06b6d4" stroke-width="2.5"/></svg><div class="lt">Subsea fibre (landings verified)</div></div>
+    <div class="ll"><svg width="28" height="7"><line x1="0" y1="3.5" x2="28" y2="3.5" stroke="#22d3ee" stroke-width="2" stroke-dasharray="3 3"/></svg><div class="lt">TasGovNet — follows gas easement</div></div>
+    <div class="ll"><svg width="28" height="7"><line x1="0" y1="3.5" x2="28" y2="3.5" stroke="#fbbf24" stroke-width="2" stroke-dasharray="2 4"/></svg><div class="lt">Proposed (Bernacchi, Marinus Link) <span class="conf-tag cnf-l">FUTURE</span></div></div>
+    <div class="ll"><svg width="14" height="14"><polygon points="7,1 13,11 1,11" fill="#06b6d4" stroke="#fff" stroke-width="1"/></svg><div class="lt">Landing point (verified)</div></div>
+  </div>
+  <div class="ss">
+    <div class="st">Water &amp; Gas <span class="conf-tag cnf-h">LIST LIVE</span></div>
+    <div class="lyr-toggle" onclick="toggleLayer('water')"><input type="checkbox" id="cb-water"><span class="lyr-name" style="color:#0ea5e9;">TasWater mains (zoom 12+)</span></div>
+    <div class="lyr-toggle" onclick="toggleLayer('sewer')"><input type="checkbox" id="cb-sewer"><span class="lyr-name" style="color:#0891b2;">TasWater sewer mains (zoom 13+)</span></div>
+    <div class="lyr-toggle" onclick="toggleLayer('hydrant')"><input type="checkbox" id="cb-hydrant"><span class="lyr-name" style="color:#22d3ee;">Hydrants (zoom 15+)</span></div>
+    <div class="lyr-toggle" onclick="toggleLayer('gaspipe')"><input type="checkbox" id="cb-gaspipe" checked><span class="lyr-name" style="color:#facc15;">Tas Gas transmission easement</span></div>
+    <div class="lyr-toggle" onclick="toggleLayer('gasdist')"><input type="checkbox" id="cb-gasdist"><span class="lyr-name" style="color:#fbbf24;">Tas Gas distribution (zoom 12+)</span></div>
+    <div class="lyr-toggle" onclick="toggleLayer('wcatch')"><input type="checkbox" id="cb-wcatch"><span class="lyr-name" style="color:#0284c7;">Drinking water catchments</span></div>
+  </div>
+  <div class="ss">
+    <div class="st">LGA Boundaries <span class="conf-tag cnf-h">VERIFIED</span></div>
+    <div class="ll"><svg width="28" height="10"><rect x="0" y="2" width="28" height="7" fill="rgba(37,99,235,.12)" stroke="#2563eb" stroke-width="1.5"/></svg><div class="lt">Priority LGAs</div></div>
+    <div class="ll"><svg width="28" height="10"><rect x="0" y="2" width="28" height="7" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="3 3"/></svg><div class="lt">All other municipalities</div></div>
+  </div>
+  <div class="det" id="det">
+    <div class="de">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>
+      <div>Click any <b style="color:#059669;">substation</b>, <b style="color:#7c3aed;">power line</b>, <b style="color:#06b6d4;">fibre</b>, <b style="color:#0ea5e9;">water main</b>, <b style="color:#facc15;">gas pipe</b>, or <b style="color:#2563eb;">LGA</b> for full detail.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ── MAP SETUP ──────────────────────────────────────────────────────────────
+const map = L.map('map',{center:[-41.8,146.5],zoom:8,zoomControl:true});
+map.zoomControl.setPosition('bottomleft');
+map.createPane('lgaPane').style.zIndex='400';
+map.createPane('waterPane').style.zIndex='410';
+map.createPane('gasPane').style.zIndex='415';
+map.createPane('linesPane').style.zIndex='420';
+map.createPane('ringsPane').style.zIndex='430';
+map.createPane('markersPane').style.zIndex='460';
+map.createPane('labelsPane').style.zIndex='470';
+const svgR = L.svg({pane:'markersPane'});
+const svgL = L.svg({pane:'linesPane'});
+
+const basemaps = {
+  voyager:L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OSM · © CARTO',subdomains:'abcd',maxZoom:19}),
+  light:L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM · © CARTO',subdomains:'abcd',maxZoom:19}),
+  dark:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM · © CARTO',subdomains:'abcd',maxZoom:19}),
+  topo:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'© OpenTopoMap',maxZoom:17}),
+};
+basemaps.voyager.addTo(map);
+function setMap(n,btn){Object.values(basemaps).forEach(t=>{if(map.hasLayer(t))map.removeLayer(t);});basemaps[n].addTo(map);document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+
+// ── PROJECT DATA ───────────────────────────────────────────────────────────
+const PROJ = {
+  'George Town':{tier:'t1',rank:1,fl110:'14.58 / 12.91 kA',fl220:'12.81 / 12.52 kA — 3 TX points in AMZ',aug:'At ceiling. RIT-T underway for >210MW NPR threshold.',con:'NPR threshold ~210MW cumulative. Bell Bay Powerfuels (300MW H₂) queued ahead.',q:'How much firm headroom remains below the 210MW NPR threshold?',note:'Three TX connection points — George Town, TEMCO, Comalco. Bell Bay AMZ. Also: only non-Telstra subsea fibre (Basslink) lands here at Four Mile Bluff. Major commercial differentiator.',nc:'#0c2a1e'},
+  'Hadspen':{tier:'t1',rank:2,fl110:'14.65 kA — highest in Tasmania',fl220:'12.51 kA',aug:'None needed at TX level.',con:'Distribution zone over firm capacity — bypassed by direct TX connection.',q:'Can a direct TX connection be assessed independently of the distribution constraint?',note:'Two separate 110kV feeds (George Town + Poatina). Perth/Prospect Vale corridor ~5–8km. Largest regional labour pool. TasGovNet fibre via Launceston ring.',nc:'#0c2a1e'},
+  'Sheffield':{tier:'t1',rank:3,fl110:'12.13 kA',fl220:'12.92 kA',aug:'HIGH — NWTD Stage 1 new 220kV. FID Aug 2025. Delivery 2030/31.',con:'Mostly rural land in Kentish LGA. Rezoning likely.',q:'Current firm capacity at Sheffield and expected post-NWTD uplift?',note:'NWTD junction node. New 220kV corridor Palmerston → Sheffield → Burnie/Heybridge.',nc:'#0c2a1e'},
+  'Boyer':{tier:'t2',rank:4,fl110:'10.78 kA',fl220:'Not available',aug:'Indirect. No specific funded programme.',con:'110kV only.',q:'Firm capacity headroom and Derwent Valley 110kV corridor limitations?',note:'Former Norske Skog paper mill. 40km north of Hobart. Only credible southern candidate. TasGovNet south leg passes through.',nc:'#2a1a0c'},
+  'Railton':{tier:'t2',rank:5,fl110:'8.80 kA',fl220:'Not available',aug:'Indirect NWTD benefit via Sheffield–Devonport corridor.',con:'110kV only.',q:'Does NWTD Stage 1 give meaningful uplift?',note:'Former Boral cement works. On Sheffield→Devonport 110kV corridor.',nc:'#2a1a0c'},
+  'Burnie':{tier:'t2',rank:6,fl110:'7.52 / 7.05 kA',fl220:'5.24 kA',aug:'HIGH — Marinus Link (750MW) at Heybridge + NWTD 220kV by 2030/31.',con:'Supply TX end-of-life (renewal 2031–33).',q:'Current firm capacity, post-NWTD + Marinus Link uplift, and transformer renewal timeline?',note:'Marinus Link lands at adjacent Heybridge — will bring 4th Bass Strait fibre route. Port industrial precinct. Transforms by 2030/31.',nc:'#2a1a0c'},
+  'Chapel Street':{tier:'notable',fl110:'15.06 kA',fl220:'N/A',aug:'At ceiling.',con:'Hobart CBD — no viable DC land.',q:null,note:'Highest fault level in Tasmania. Hobart CBD.',nc:'#0f2242'},
+  'Creek Road':{tier:'notable',fl110:'14.42 kA',fl220:'N/A',aug:'At ceiling.',con:'Hobart metro.',q:null,note:'Hobart metro.',nc:'#0f2242'},
+  'Palmerston':{tier:'notable',fl110:'13.76 kA',fl220:'14.02 kA',aug:'Main 220kV spine junction.',con:'Remote Central Highlands.',q:null,note:'High fault level as 220kV junction. Remote.',nc:'#0f2242'},
+  'Risdon':{tier:'notable',fl110:'13.62 kA',fl220:'N/A',aug:'Strong grid.',con:'Former smelter — brownfield + metro pricing.',q:null,note:'Former Nyrstar smelter — brownfield + metro pricing.',nc:'#0f2242'},
+  'Trevallyn':{tier:'notable',fl110:'12.79 kA',fl220:'N/A',aug:'At ceiling.',con:'Inner Launceston — residential.',q:null,note:'Launceston residential.',nc:'#0f2242'},
+  'New Norfolk':{tier:'notable',fl110:'11.94 kA',fl220:'N/A',aug:'Moderate.',con:'Limited industrial land.',q:null,note:'Strong grid, limited industrial land.',nc:'#0f2242'},
+  'Smithton':{tier:'elim',fl110:'2.98 kA — weakest viable node',fl220:'N/A',aug:'New 110kV spur (~$50–150M+).',con:'Bus coupler kept OPEN — N-1 compromised.',q:null,note:'ELIMINATED. Single spur, no return, bus coupler open.',nc:'#2d0f0f'},
+  'Port Latta':{tier:'elim',fl110:'3.54 kA',fl220:'N/A',aug:'STATCOMs only.',con:'Grid extremity.',q:null,note:'ELIMINATED.',nc:'#2d0f0f'},
+  'Hampshire':{tier:'elim',fl110:'3.40 kA',fl220:'N/A',aug:'None.',con:'Switching station.',q:null,note:'ELIMINATED.',nc:'#2d0f0f'},
+  'St Marys':{tier:'elim',fl110:'1.12 kA',fl220:'N/A',aug:'None.',con:'East coast spur extremity.',q:null,note:'ELIMINATED. Weakest in Tasmania.',nc:'#2d0f0f'},
+  'Queenstown':{tier:'elim',fl110:'3.00 kA',fl220:'N/A',aug:'None.',con:'Remote west coast.',q:null,note:'ELIMINATED.',nc:'#2d0f0f'},
+};
+
+const TC = {t1:'#059669',t2:'#d97706',notable:'#2563eb',elim:'#dc2626',other:'#64748b'};
+const TR = {t1:13,t2:11,notable:9,elim:8,other:7};
+const PRIORITY_LGA = ['george town','kentish','latrobe','burnie','northern midlands','derwent valley','circular head','central coast','meander valley','launceston','west tamar','devonport','waratah','brighton','glenorchy'];
+
+function matchName(raw){if(!raw)return null;const n=raw.trim();if(PROJ[n])return n;for(const k of Object.keys(PROJ)){const a=n.toLowerCase(),b=k.toLowerCase();if(a===b||a.startsWith(b)||b.startsWith(a)||a.includes(b)||b.includes(a))return k;}return null;}
+
+function showSub(rawName, mk){
+  const d=document.getElementById('det');const s=mk?PROJ[mk]:null;
+  if(!s){d.innerHTML=`<div class="dn">${rawName||'Substation'}</div><div class="dr">TasNetworks Substation</div><div class="db" style="background:rgba(100,116,139,.15);color:#94a3b8;">Not in shortlist</div><div class="dnote" style="background:rgba(255,255,255,.04);color:#93adc8;">In the LIST dataset but not in the data centre shortlist — likely distribution, generation, or assessed and deprioritised.</div>`;return;}
+  const bc={t1:{bg:'rgba(5,150,105,.15)',tx:'#34d399'},t2:{bg:'rgba(217,119,6,.15)',tx:'#fbbf24'},notable:{bg:'rgba(37,99,235,.15)',tx:'#60a5fa'},elim:{bg:'rgba(220,38,38,.15)',tx:'#f87171'},other:{bg:'rgba(100,116,139,.15)',tx:'#cbd5e1'}};
+  const b=bc[s.tier]||bc.other;
+  const tl={t1:`★ Shortlisted · Rank ${s.rank} of 6`,t2:`Shortlisted · Tier 2 · Rank ${s.rank}`,notable:'Notable · strong grid, no DC land',elim:'Eliminated',other:'Context'}[s.tier]||'';
+  d.innerHTML=`<div class="dn">${rawName||mk}</div><div class="dr">TasNetworks Substation · LIST official position</div><div class="db" style="background:${b.bg};color:${b.tx};">${tl}</div>
+    <div class="dw"><span class="dk_">110kV fault level</span><span class="dv">${s.fl110}</span></div>
+    <div class="dw"><span class="dk_">220kV fault level</span><span class="dv">${s.fl220}</span></div>
+    <div class="dw"><span class="dk_">Augmentation</span><span class="dv" style="font-size:10px;max-width:168px;">${s.aug}</span></div>
+    <div class="dw"><span class="dk_">Constraint</span><span class="dv" style="font-size:10px;max-width:168px;">${s.con}</span></div>
+    <div class="dnote" style="background:${s.nc};color:#dce8f5;">${s.note}</div>
+    ${s.q?`<div class="dq"><div class="dql">Your question for Aaron</div>${s.q}</div>`:''}`;
+}
+
+// ── LOAD STATE ─────────────────────────────────────────────────────────────
+let loaded={subs:false,lines:false,lgas:false};
+function checkAllLoaded(){if(loaded.subs&&loaded.lines&&loaded.lgas){setTimeout(()=>{document.getElementById('lod').classList.add('hidden');drawCircles();updateZoomHint();},300);}}
+const realPos={};
+
+// ── PAGINATED FETCHER ──────────────────────────────────────────────────────
+async function fetchAllFeatures(baseUrl,outFields){
+  const all=[];let offset=0;const pageSize=2000;let safetyMax=20;
+  while(safetyMax-- >0){
+    const url=`${baseUrl}?where=1%3D1&outFields=${outFields}&returnGeometry=true&f=geojson&outSR=4326&resultRecordCount=${pageSize}&resultOffset=${offset}`;
+    const r=await fetch(url);if(!r.ok)throw new Error('Fetch failed: '+r.status);
+    const data=await r.json();if(!data.features||data.features.length===0)break;
+    all.push(...data.features);if(data.features.length<pageSize)break;offset+=pageSize;
+  }
+  return all;
+}
+
+// ── 1. SUBSTATIONS ─────────────────────────────────────────────────────────
+document.getElementById('lodtxt').textContent='Loading TasNetworks substations…';
+fetchAllFeatures('https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/60/query','NAME').then(features=>{
+  features.forEach(f=>{
+    if(!f.geometry||!f.geometry.coordinates)return;
+    const [lng,lat]=f.geometry.coordinates;const raw=f.properties.NAME||'';const mk=matchName(raw);
+    const tier=mk?(PROJ[mk].tier||'other'):'other';const color=TC[tier]||'#64748b';const r=TR[tier]||7;
+    const ll=L.latLng(lat,lng);if(mk)realPos[mk]={lat,lng};
+    if(tier==='t1'){const ri=L.divIcon({className:'',html:`<div class="pr" style="width:28px;height:28px;background:radial-gradient(circle,rgba(5,150,105,.55) 0%,rgba(5,150,105,0) 70%);"></div>`,iconSize:[28,28],iconAnchor:[14,14]});L.marker(ll,{icon:ri,interactive:false,pane:'ringsPane'}).addTo(map);}
+    const m=L.circleMarker(ll,{radius:r,fillColor:color,color:'#fff',weight:tier==='t1'?2.5:tier==='t2'?2:1.2,opacity:1,fillOpacity:tier==='t1'?1:tier==='t2'?0.92:0.72,pane:'markersPane',renderer:svgR});
+    m.on('add',()=>{if(m._path&&(tier==='t1'||tier==='t2'))m._path.style.filter=`drop-shadow(0 0 5px ${color})`;});
+    if(tier==='t1'||tier==='t2'){const d=PROJ[mk];const lbl=L.divIcon({className:'',html:`<span style="font-family:'Space Grotesk',sans-serif;font-size:${tier==='t1'?'12px':'11px'};font-weight:700;color:#0b1a2e;background:rgba(255,255,255,.94);padding:2px 7px;border-radius:5px;white-space:nowrap;border:1.5px solid ${color};box-shadow:0 2px 8px rgba(0,0,0,.22),0 0 9px ${color}44;">${d.rank?d.rank+' · ':''}${mk}</span>`,iconSize:[240,22],iconAnchor:[-(r+7),11]});L.marker(ll,{icon:lbl,interactive:false,pane:'labelsPane'}).addTo(map);}
+    const tl={t1:'★ Top 3',t2:'Tier 2',notable:'Notable',elim:'Eliminated',other:'TasNetworks sub'}[tier]||'';
+    m.bindTooltip(`<div class="tn">${raw}</div><div class="tf">${mk&&PROJ[mk].fl110?'110kV: '+PROJ[mk].fl110:''}</div><div class="tk" style="color:${color};">${tl}</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});
+    m.on('click',()=>{showSub(raw,mk);map.panTo(ll,{animate:true,duration:0.4});});m.addTo(map);
+  });
+  loaded.subs=true;checkAllLoaded();
+}).catch(()=>{loaded.subs=true;checkAllLoaded();});
+
+// ── 2. TRANSMISSION LINES ─────────────────────────────────────────────────
+document.getElementById('lodtxt').textContent='Loading transmission lines…';
+function inferVoltage(name){if(!name)return 110;const s=name.toLowerCase();if(s.includes('220')||s.includes('500'))return 220;if(s.includes('110')||s.includes('44')||s.includes('66')||s.includes('88'))return 110;if(s.includes('palmerston')&&(s.includes('george town')||s.includes('tamar')||s.includes('basslink')))return 220;if(s.includes('palmerston')&&(s.includes('chapel')||s.includes('liapootah')||s.includes('tarraleah')||s.includes('boyer')))return 220;if(s.includes('gordon'))return 220;return 110;}
+function lineDetail(name,volt,is220){const d=document.getElementById('det');const c=is220?'#7c3aed':'#dc2626';d.innerHTML=`<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:${is220?'rgba(124,58,237,.15)':'rgba(220,38,38,.12)'};border:1px solid ${c};margin-bottom:10px;"><svg width="22" height="5"><line x1="0" y1="2.5" x2="22" y2="2.5" stroke="${c}" stroke-width="${is220?3.5:2}"/></svg><span style="font-size:11px;font-weight:700;color:${is220?'#c4b5fd':'#fca5a5'};">${is220?'220kV Transmission':'110kV Transmission'} · LIST live</span></div><div class="dn">${name||'Transmission Line'}</div><div class="dr">Inferred voltage: ${volt}kV · TasNetworks via LIST L61</div><div class="dnote" style="background:rgba(255,255,255,.04);color:#b0c4d8;margin-top:10px;">Route position sourced directly from TasNetworks via the LIST Infrastructure MapServer. Layer 61 contains no explicit voltage attribute — voltage is inferred from line naming and network topology.</div>`;}
+fetchAllFeatures('https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/61/query','LINE_NAME,OBJECTID').then(features=>{
+  features.forEach(f=>{
+    if(!f.geometry||!f.geometry.coordinates)return;
+    const attrs=f.properties||{};const name=attrs.LINE_NAME||'';const volt=inferVoltage(name);const is220=volt>=200;
+    const color=is220?'#7c3aed':'#dc2626';const weight=is220?3.5:2.2;const opacity=is220?0.9:0.8;
+    let coordsList;if(f.geometry.type==='LineString'){coordsList=[f.geometry.coordinates.map(c=>[c[1],c[0]])];}else if(f.geometry.type==='MultiLineString'){coordsList=f.geometry.coordinates.map(seg=>seg.map(c=>[c[1],c[0]]));}else return;
+    coordsList.forEach(pts=>{if(pts.length<2)return;
+      const hit=L.polyline(pts,{color:'transparent',weight:10,opacity:0,pane:'linesPane',renderer:svgL});
+      const vis=L.polyline(pts,{color,weight,opacity,pane:'linesPane',renderer:svgL});
+      const over=()=>vis.setStyle({opacity:1,weight:weight+1.5});const out=()=>vis.setStyle({opacity,weight});
+      [hit,vis].forEach(l=>{l.on('mouseover',over).on('mouseout',out);l.on('click',()=>lineDetail(name,volt,is220));});
+      vis.bindTooltip(`<div class="tn">${name||'Transmission Line'}</div><div class="tf">${volt}kV · LIST</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});
+      hit.addTo(map);vis.addTo(map);
+    });
+  });
+  loaded.lines=true;checkAllLoaded();
+}).catch(()=>{loaded.lines=true;checkAllLoaded();});
+
+// ── 3. LGA BOUNDARIES ─────────────────────────────────────────────────────
+const lgaLayer=L.esri.featureLayer({
+  url:'https://services.thelist.tas.gov.au/arcgis/rest/services/Public/CadastreAndAdministrative/MapServer/4',
+  pane:'lgaPane',simplifyFactor:0.5,precision:4,
+  style:function(feature){const name=(feature.properties.NAME||'').toLowerCase();const isP=PRIORITY_LGA.some(p=>name.includes(p));return isP?{color:'#2563eb',weight:1.8,opacity:0.7,fillColor:'#2563eb',fillOpacity:0.07,dashArray:null}:{color:'#475569',weight:1,opacity:0.45,fillColor:'transparent',fillOpacity:0,dashArray:'3 4'};},
+  onEachFeature:function(feature,layer){const name=feature.properties.NAME||'Unknown LGA';const isP=PRIORITY_LGA.some(p=>name.toLowerCase().includes(p));layer.bindTooltip(`<div class="tn">${name}</div><div class="tf">${isP?'Relevant LGA — shortlisted subs present':'Municipality'}</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});layer.on('click',()=>{document.getElementById('det').innerHTML=`<div class="dn">${name}</div><div class="dr">Local Government Area</div><div class="db" style="background:${isP?'rgba(37,99,235,.15)':'rgba(71,85,105,.15)'};color:${isP?'#60a5fa':'#94a3b8'};">${isP?'Priority LGA':'Other municipality'}</div><div class="dnote" style="background:rgba(255,255,255,.04);color:#b0c4d8;">${isP?`Contains one or more shortlisted substations. DAs and pre-app meetings will go through ${name} Council.`:'Municipality boundary for reference. No shortlisted substations within this LGA.'}</div>`;});layer.on('mouseover',()=>layer.setStyle({fillOpacity:isP?0.15:0.06,weight:isP?2.5:1.5}));layer.on('mouseout',()=>lgaLayer.resetStyle(layer));}
+});
+lgaLayer.addTo(map);
+lgaLayer.once('load',()=>{loaded.lgas=true;checkAllLoaded();});
+setTimeout(()=>{loaded.lgas=true;checkAllLoaded();},12000);
+
+// ── 4. WATER, SEWER, GAS LAYERS (zoom-aware via esri-leaflet) ─────────────
+const utilityLayers={};
+
+// Gas transmission easement — Layer 48 (always visible — it's the major corridor)
+utilityLayers.gaspipe = L.esri.featureLayer({
+  url:'https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/48',
+  pane:'gasPane',
+  style:{color:'#facc15',weight:3,opacity:0.85,dashArray:'4 3'},
+  onEachFeature:function(feature,layer){
+    layer.bindTooltip(`<div class="tn">Tas Gas Pipeline Easement</div><div class="tf">High-pressure gas transmission corridor</div><div class="tk" style="color:#facc15;">Also carries TasGovNet fibre</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});
+    layer.on('click',()=>{
+      document.getElementById('det').innerHTML=`<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:rgba(250,204,21,.15);border:1px solid #facc15;margin-bottom:10px;"><svg width="22" height="5"><line x1="0" y1="2.5" x2="22" y2="2.5" stroke="#facc15" stroke-width="3" stroke-dasharray="4 3"/></svg><span style="font-size:11px;font-weight:700;color:#fde047;">Tas Gas Transmission Easement</span></div><div class="dn">Tasmanian Gas Pipeline Easement</div><div class="dr">LISTmap Layer 48 · High-pressure transmission corridor</div><div class="dnote" style="background:rgba(250,204,21,.07);color:#fef3c7;border-color:rgba(250,204,21,.2);">The high-pressure gas transmission pipeline corridor running from George Town south through Launceston, Devonport, and ultimately to Hobart. Operated by Tas Gas Networks. Provides natural gas to industrial and commercial users along the route. <b>Crucially, the TasGovNet on-island fibre backbone follows this easement — making it the most accurate publicly known fibre route in Tasmania.</b></div><div class="dq"><div class="dql">Relevance to your project</div>Sites adjacent to this easement have access to both gas supply AND the TasGovNet fibre backbone. George Town, Hadspen, and Boyer all sit close to this corridor. Critical for hyperscaler-grade redundancy.</div>`;
+    });
+  }
+}).addTo(map);
+
+// Gas distribution — Layer 41 (zoom 12+)
+utilityLayers.gasdist = L.esri.featureLayer({
+  url:'https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/41',
+  pane:'gasPane',
+  style:{color:'#fbbf24',weight:1.5,opacity:0.7},
+  minZoom:12,
+  onEachFeature:function(feature,layer){layer.bindTooltip(`<div class="tn">Tas Gas Distribution Pipe</div><div class="tf">Local gas distribution network</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});}
+});
+
+// TasWater water mains — Layer 4 (zoom 12+)
+utilityLayers.water = L.esri.featureLayer({
+  url:'https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/4',
+  pane:'waterPane',
+  style:{color:'#0ea5e9',weight:1.5,opacity:0.7},
+  minZoom:12,
+  onEachFeature:function(feature,layer){const attrs=feature.properties||{};const diam=attrs.NOM_DIA_MM||attrs.NOMINAL_DIAMETER||'?';const mat=attrs.MATERIAL||'?';layer.bindTooltip(`<div class="tn">TasWater Water Main</div><div class="tf">Ø ${diam}mm · ${mat}</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});layer.on('click',()=>{document.getElementById('det').innerHTML=`<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:rgba(14,165,233,.15);border:1px solid #0ea5e9;margin-bottom:10px;"><svg width="22" height="5"><line x1="0" y1="2.5" x2="22" y2="2.5" stroke="#0ea5e9" stroke-width="2.5"/></svg><span style="font-size:11px;font-weight:700;color:#7dd3fc;">TasWater Water Main</span></div><div class="dn">Water Main</div><div class="dr">LISTmap Layer 4 · TasWater</div><div class="dw"><span class="dk_">Diameter</span><span class="dv">${diam}mm</span></div><div class="dw"><span class="dk_">Material</span><span class="dv">${mat}</span></div><div class="dnote" style="background:rgba(14,165,233,.07);color:#bae6fd;border-color:rgba(14,165,233,.18);">Active water main from TasWater's registered network. For a data centre cooling load, you need bulk water supply capacity — confirm with TasWater whether this main has the diameter and pressure for industrial-scale extraction.</div>`;});}
+});
+
+// TasWater sewer mains — Layer 5 (zoom 13+)
+utilityLayers.sewer = L.esri.featureLayer({
+  url:'https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/5',
+  pane:'waterPane',
+  style:{color:'#0891b2',weight:1.2,opacity:0.6,dashArray:'3 2'},
+  minZoom:13,
+  onEachFeature:function(feature,layer){layer.bindTooltip(`<div class="tn">TasWater Sewer Main</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});}
+});
+
+// Hydrants — Layer 2 (zoom 15+)
+utilityLayers.hydrant = L.esri.featureLayer({
+  url:'https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/2',
+  pane:'waterPane',
+  pointToLayer:function(geojson,latlng){return L.circleMarker(latlng,{radius:3,fillColor:'#22d3ee',color:'#fff',weight:0.5,fillOpacity:0.9});},
+  minZoom:15,
+  onEachFeature:function(feature,layer){layer.bindTooltip(`<div class="tn">Hydrant</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});}
+});
+
+// Drinking water catchments — Layer 37
+utilityLayers.wcatch = L.esri.featureLayer({
+  url:'https://services.thelist.tas.gov.au/arcgis/rest/services/Public/Infrastructure/MapServer/37',
+  pane:'waterPane',
+  style:{color:'#0284c7',weight:1.5,opacity:0.5,fillColor:'#0ea5e9',fillOpacity:0.06},
+  onEachFeature:function(feature,layer){const name=feature.properties.CATCHMENT_NAME||feature.properties.NAME||'Drinking Water Catchment';layer.bindTooltip(`<div class="tn">${name}</div><div class="tf">Drinking water catchment</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});}
+});
+
+// Toggle handler
+function toggleLayer(key){const cb=document.getElementById('cb-'+key);cb.checked=!cb.checked;if(cb.checked){if(!map.hasLayer(utilityLayers[key]))utilityLayers[key].addTo(map);}else{if(map.hasLayer(utilityLayers[key]))map.removeLayer(utilityLayers[key]);}}
+
+// ── 5. FIBRE LAYER (corrected accuracy) ────────────────────────────────────
+// Subsea cables: landing points verified from TeleGeography / DCD. Submarine route is commercial-confidential
+// so shown as great-circle approximation. TasGovNet on-island follows the gas easement which IS in LIST.
+const FIBRE_CABLES=[
+  {name:'Telstra Bass Strait 1',kind:'subsea',built:1995,landing:'Boat Harbour, NW Tasmania → Sandy Point, VIC',owner:'Telstra',status:'Operational',
+   note:'First fibre crossing of Bass Strait (1995). Telstra-owned. Landing points verified; submarine path approximated as Telstra does not publish exact route.',
+   rel:'Provides Tasmania\'s primary commercial fibre route. Boat Harbour landing is ~30km west of Burnie — accessible from Burnie (Rank 6) and Wesley Vale corridor via TasGovNet.',
+   pts:[[-40.974,145.589],[-40.5,145.4],[-39.5,145.3],[-38.6,145.5]]},
+  {name:'Telstra Bass Strait 2',kind:'subsea',built:2003,landing:'Stanley, NW Tasmania → Inverloch, VIC',owner:'Telstra',status:'Operational',
+   note:'Second Telstra cable (2003). Stanley landing provides geographic diversity from Bass Strait 1 at Boat Harbour. Landing verified; submarine route approximated.',
+   rel:'Stanley landing in Circular Head LGA. Same northwest corner as Smithton. Serves Burnie/Devonport via TasGovNet on-island.',
+   pts:[[-40.760,145.293],[-40.3,145.4],[-39.4,146.1],[-38.6,145.7]]},
+  {name:'Basslink Fibre',kind:'subsea',built:2006,landing:'Four Mile Bluff, George Town → McGaurans Beach, VIC',owner:'APA Group · operated by AARNet (from March 2025)',status:'Operational',
+   note:'12-core fibre embedded in the Basslink HVDC interconnector. Only non-Telstra commercial fibre route across Bass Strait. AARNet partnership from March 2025. Landing at Four Mile Bluff (within Bell Bay precinct) verified by APA. Submarine route follows the HVDC cable.',
+   rel:'CRITICAL for George Town (Rank 1). Direct fibre access to non-Telstra mainland connectivity from within the Bell Bay AMZ precinct. Major commercial differentiator — a hyperscaler will pay for true Telstra-independent diversity.',
+   pts:[[-41.062,146.967],[-40.5,147.1],[-39.5,147.0],[-38.55,146.97]]},
+  {name:'Marinus Link Fibre',kind:'subsea-future',built:2030,landing:'Heybridge (Burnie) → Waratah Bay, VIC',owner:'Marinus Link Pty Ltd',status:'Funded · delivery 2030/31',
+   note:'Fibre embedded alongside the 750MW HVDC Marinus Link cable. Adds a fourth Bass Strait fibre route. FID confirmed August 2025. Commercial fibre arrangements TBC.',
+   rel:'CRITICAL for Burnie (Rank 6). When complete, Burnie/Emu Bay gains 750MW of grid capacity AND a new fibre route — both transforming commercial value by 2030/31.',
+   pts:[[-41.040,145.878],[-40.5,145.9],[-39.5,146.2],[-38.7,146.3]]},
+  {name:'Bernacchi-1 (proposed)',kind:'subsea-proposed',built:2027,landing:'Northern Tasmania → NSW (route TBC)',owner:'Firmus Technologies / SubCo',status:'Proposed',
+   note:'First proposed subsea cable linking Tasmania to NSW (rather than VIC). Firmus (data centre operator) and SubCo partnership. Routing and landing TBC. Would be first cable in this corridor in over 20 years.',
+   rel:'Competitive intel — Firmus is a direct competitor in the Tasmanian data centre market and is securing its own fibre. May signal in-house connectivity provision as the new model.',
+   pts:[[-41.05,146.90],[-41.0,148.0],[-40.5,149.5],[-39.0,151.5],[-37.0,151.5],[-34.5,151.5]]}
+];
+
+const FIBRE_LANDINGS=[
+  {name:'Four Mile Bluff (Basslink)',lat:-41.062,lng:146.967,cables:['Basslink Fibre'],note:'Critical landing — Basslink HVDC + fibre. Within Bell Bay AMZ precinct.',priority:true},
+  {name:'Boat Harbour (Bass Strait 1)',lat:-40.974,lng:145.589,cables:['Telstra Bass Strait 1'],note:'Telstra\'s primary Bass Strait fibre landing since 1995.',priority:false},
+  {name:'Stanley (Bass Strait 2)',lat:-40.760,lng:145.293,cables:['Telstra Bass Strait 2'],note:'Telstra\'s second Bass Strait fibre landing (2003).',priority:false},
+  {name:'Heybridge (Marinus Link future)',lat:-41.040,lng:145.878,cables:['Marinus Link Fibre — 2030/31'],note:'Future Marinus Link landing. Adjacent to Burnie.',priority:true,future:true},
+];
+
+function showFibre(c){const d=document.getElementById('det');const isProp=c.kind==='subsea-proposed'||c.kind==='subsea-future';const c0=isProp?'#fbbf24':'#06b6d4';const lbl=isProp?'Proposed / Future Subsea Cable':'Subsea Fibre — Bass Strait';d.innerHTML=`<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:rgba(6,182,212,.12);border:1px solid ${c0};margin-bottom:10px;"><svg width="22" height="5"><line x1="0" y1="2.5" x2="22" y2="2.5" stroke="${c0}" stroke-width="2.5" ${isProp?'stroke-dasharray="3 3"':''}/></svg><span style="font-size:11px;font-weight:700;color:${c0};">${lbl}</span></div><div class="dn">${c.name}</div><div class="dr">Subsea fibre · ${c.built?'built '+c.built:'proposed'}</div>${c.landing?`<div class="dw"><span class="dk_">Landing</span><span class="dv" style="font-size:10px;max-width:170px;">${c.landing}</span></div>`:''}<div class="dw"><span class="dk_">Owner</span><span class="dv" style="font-size:10px;max-width:170px;">${c.owner}</span></div><div class="dw"><span class="dk_">Status</span><span class="dv">${c.status}</span></div><div class="dnote" style="background:rgba(6,182,212,.07);color:#cffafe;border-color:rgba(6,182,212,.2);">${c.note}</div>${c.rel?`<div class="dq"><div class="dql">Project relevance</div>${c.rel}</div>`:''}`;}
+function showLanding(L_){const d=document.getElementById('det');d.innerHTML=`<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:rgba(6,182,212,.12);border:1px solid #06b6d4;margin-bottom:10px;"><svg width="14" height="14"><polygon points="7,1 13,11 1,11" fill="#06b6d4" stroke="#fff" stroke-width="1"/></svg><span style="font-size:11px;font-weight:700;color:#22d3ee;">Subsea Cable Landing${L_.future?' · Future':''}</span></div><div class="dn">${L_.name}</div><div class="dr">${L_.cables.join(', ')}</div><div class="dnote" style="background:rgba(6,182,212,.07);color:#cffafe;border-color:rgba(6,182,212,.2);">${L_.note}</div>${L_.priority?`<div class="dq"><div class="dql">Project relevance</div>Critical fibre infrastructure within reach of your shortlisted sites. Verify physical fibre path and dark-fibre availability with the cable operator.</div>`:''}`;}
+
+FIBRE_CABLES.forEach(c=>{const isProp=c.kind==='subsea-proposed'||c.kind==='subsea-future';const color=isProp?'#fbbf24':'#06b6d4';const weight=2.5;const opacity=0.75;const dash=isProp?'3 5':null;const opts={color,weight,opacity,pane:'linesPane',renderer:svgL};if(dash)opts.dashArray=dash;
+  const hit=L.polyline(c.pts,{color:'transparent',weight:10,opacity:0,pane:'linesPane',renderer:svgL}).addTo(map);
+  const vis=L.polyline(c.pts,opts).addTo(map);
+  const over=()=>vis.setStyle({opacity:1,weight:weight+1.5});const out=()=>vis.setStyle({opacity,weight});
+  [hit,vis].forEach(l=>{l.on('mouseover',over).on('mouseout',out);l.on('click',()=>showFibre(c));});
+  vis.bindTooltip(`<div class="tn">${c.name}</div><div class="tf">${isProp?'Future / proposed':'Subsea fibre cable'}</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});
+});
+
+// TasGovNet on-island fibre — aligned to gas pipeline easement (since LIST gas L48 IS the route)
+// We render this as a subtle overlay that visually pairs with the gas easement layer.
+const tgnNorth=[[-41.062,146.967],[-41.093,146.877],[-41.20,146.95],[-41.44,147.14],[-41.39,146.35],[-41.18,146.36],[-41.16,146.17],[-41.05,145.91]];
+const tgnSouth=[[-41.44,147.14],[-41.79,146.91],[-41.85,146.62],[-42.27,146.84],[-42.69,147.03],[-42.78,147.06],[-42.90,147.32]];
+[tgnNorth,tgnSouth].forEach((pts,idx)=>{
+  const name=idx===0?'TasGovNet — Northern Backbone':'TasGovNet — Northern → Hobart Backbone';
+  const note=idx===0?'On-island fibre backbone laid alongside the McDermott Australia gas pipeline corridor. Connects George Town → Launceston → Devonport → Burnie. 420km total network. Government-owned, commercialised through Aurora Energy.':'Southern leg of TasGovNet, Launceston south through Palmerston/central spine to Hobart. Significantly less constrained than the metro Hobart fibre.';
+  const rel=idx===0?'CRITICAL infrastructure for all six shortlisted substations. Route alignment shown corresponds to the Tas Gas pipeline easement which TasGovNet shares — this is the most accurate publicly known route.':'Provides fibre for Boyer (Rank 4) and southern Tasmania development.';
+  const hit=L.polyline(pts,{color:'transparent',weight:10,opacity:0,pane:'linesPane',renderer:svgL}).addTo(map);
+  const vis=L.polyline(pts,{color:'#22d3ee',weight:2,opacity:0.7,dashArray:'4 4',pane:'linesPane',renderer:svgL}).addTo(map);
+  [hit,vis].forEach(l=>{l.on('mouseover',()=>vis.setStyle({opacity:1,weight:3.5})).on('mouseout',()=>vis.setStyle({opacity:0.7,weight:2}));l.on('click',()=>showFibre({name,kind:'land',built:2006,landing:'Statewide',owner:'Tasmanian Government / Aurora Energy',status:'Operational',note,rel}));});
+  vis.bindTooltip(`<div class="tn">${name}</div><div class="tf">On-island fibre backbone</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});
+});
+
+FIBRE_LANDINGS.forEach(L_=>{const color=L_.future?'#fbbf24':'#06b6d4';const glow=L_.priority?`box-shadow:0 0 12px ${color};`:'';const icon=L.divIcon({className:'',html:`<div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:13px solid ${color};${glow}filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));"></div>`,iconSize:[16,13],iconAnchor:[8,13]});const m=L.marker([L_.lat,L_.lng],{icon,pane:'markersPane'}).addTo(map);m.bindTooltip(`<div class="tn">${L_.name}</div><div class="tf">${L_.cables.join(', ')}</div><div class="tk" style="color:${color};">Cable Landing</div>`,{sticky:true,className:'tip',direction:'top',opacity:1});m.on('click',()=>showLanding(L_));});
+
+// ── MANUAL OVERLAYS (NWTD, Basslink HVDC) ──────────────────────────────────
+const nwtdPts=[[-41.846,146.624],[-41.70,146.56],[-41.60,146.50],[-41.50,146.43],[-41.39,146.35],[-41.32,146.28],[-41.22,146.13],[-41.12,146.00],[-41.06,145.97],[-41.053,145.912],[-41.040,145.878]];
+const nwtdHit=L.polyline(nwtdPts,{color:'transparent',weight:10,opacity:0,pane:'linesPane',renderer:svgL}).addTo(map);
+const nwtdVis=L.polyline(nwtdPts,{color:'#059669',weight:3.2,opacity:0.9,dashArray:'10 7',pane:'linesPane',renderer:svgL}).addTo(map);
+const nwtdClick=()=>{document.getElementById('det').innerHTML=`<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:rgba(5,150,105,.15);border:1px dashed rgba(5,150,105,.5);margin-bottom:10px;"><svg width="26" height="5"><line x1="0" y1="2.5" x2="26" y2="2.5" stroke="#059669" stroke-width="2.5" stroke-dasharray="8 5"/></svg><span style="font-size:11px;font-weight:700;color:#34d399;">NWTD New 220kV · Under Construction</span></div><div class="dn">Palmerston → Sheffield → Burnie → Heybridge</div><div class="dr">North West Transmission Developments Stage 1</div><div class="dw"><span class="dk_">Voltage</span><span class="dv">220kV double-circuit</span></div><div class="dw"><span class="dk_">FID</span><span class="dv">August 2025</span></div><div class="dw"><span class="dk_">Delivery</span><span class="dv">2030/31</span></div><div class="dnote" style="background:rgba(5,150,105,.09);color:#a7f3d0;border-color:rgba(5,150,105,.2);">Most significant new grid investment in Tasmania in decades. Built to support Marinus Link (750MW HVDC). Approximate route — not yet in LIST official data.</div><div class="dq"><div class="dql">Project relevance</div>Sheffield (Rank 3) is the junction node — fault level rises materially post-2030. Burnie (Rank 6) transforms into a major interconnector terminus.</div>`;};
+[nwtdHit,nwtdVis].forEach(l=>l.on('mouseover',()=>nwtdVis.setStyle({opacity:1,weight:5})).on('mouseout',()=>nwtdVis.setStyle({opacity:0.9,weight:3.2})).on('click',nwtdClick));
+nwtdVis.bindTooltip('<div class="tn">NWTD New 220kV — 2030/31</div><div class="tf">Palmerston → Sheffield → Burnie → Heybridge</div>',{sticky:true,className:'tip',direction:'top',opacity:1});
+
+const blHit=L.polyline([[-41.07,146.87],[-40.75,147.25],[-40.40,147.70]],{color:'transparent',weight:10,opacity:0,pane:'linesPane',renderer:svgL}).addTo(map);
+const blVis=L.polyline([[-41.07,146.87],[-40.75,147.25],[-40.40,147.70]],{color:'#38bdf8',weight:2.5,opacity:0.65,dashArray:'6 5',pane:'linesPane',renderer:svgL}).addTo(map);
+const blClick=()=>{document.getElementById('det').innerHTML=`<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:18px;background:rgba(56,189,248,.12);border:1px dashed rgba(56,189,248,.4);margin-bottom:10px;"><svg width="26" height="5"><line x1="0" y1="2.5" x2="26" y2="2.5" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="6 5"/></svg><span style="font-size:11px;font-weight:700;color:#7dd3fc;">Basslink 400kV HVDC</span></div><div class="dn">Basslink — George Town → Victoria</div><div class="dr">500MW HVDC interconnector · APA Group</div><div class="dnote" style="background:rgba(56,189,248,.08);color:#bae6fd;border-color:rgba(56,189,248,.18);">Primary reason George Town and Bell Bay have Tasmania's strongest grid. Adds 500MW interconnection. Marinus Link adds further 750MW at Burnie in 2030/31.</div>`;};
+[blHit,blVis].forEach(l=>l.on('mouseover',()=>blVis.setStyle({opacity:1,weight:4})).on('mouseout',()=>blVis.setStyle({opacity:0.65,weight:2.5})).on('click',blClick));
+blVis.bindTooltip('<div class="tn">Basslink 400kV HVDC</div><div class="tf">George Town → Victoria · 500MW</div>',{sticky:true,className:'tip',direction:'top',opacity:1});
+
+// ── 5KM CIRCLES ────────────────────────────────────────────────────────────
+const T1F={'George Town':{lat:-41.093,lng:146.877},'Hadspen':{lat:-41.509,lng:147.061},'Sheffield':{lat:-41.389,lng:146.347}};
+const T2F={'Boyer':{lat:-42.689,lng:147.031},'Railton':{lat:-41.347,lng:146.441},'Burnie':{lat:-41.053,lng:145.912}};
+function drawCircles(){Object.entries(T1F).forEach(([k,fb])=>{const p=realPos[k]||fb;L.circle([p.lat,p.lng],{radius:5000,color:'#059669',weight:2.5,opacity:0.88,fillColor:'#059669',fillOpacity:0.06,dashArray:'9 7',pane:'linesPane',renderer:svgL,interactive:false}).addTo(map);});Object.entries(T2F).forEach(([k,fb])=>{const p=realPos[k]||fb;L.circle([p.lat,p.lng],{radius:5000,color:'#d97706',weight:1.5,opacity:0.45,fillColor:'#d97706',fillOpacity:0.04,dashArray:'6 9',pane:'linesPane',renderer:svgL,interactive:false}).addTo(map);});}
+
+// ── ZOOM HINT MANAGEMENT ──────────────────────────────────────────────────
+function updateZoomHint(){const z=map.getZoom();const hint=document.getElementById('zoomhint');if(z>=12){hint.classList.add('hidden');}else{hint.classList.remove('hidden');}}
+map.on('zoomend',updateZoomHint);
+
+// ── ANNOTATION LABELS ─────────────────────────────────────────────────────
+function tag(lat,lng,html){L.marker([lat,lng],{icon:L.divIcon({className:'',html,iconSize:[1,1],iconAnchor:[0,0]}),interactive:false,pane:'labelsPane'}).addTo(map);}
+tag(-40.48,147.42,`<span style="font-family:'Space Grotesk';font-size:10px;font-weight:700;color:#38bdf8;background:rgba(9,15,28,.88);padding:3px 8px;border-radius:5px;border:1px solid #38bdf8;white-space:nowrap;box-shadow:0 0 10px rgba(56,189,248,.28);">Basslink → Victoria</span>`);
+tag(-41.07,145.52,`<span style="font-family:'Space Grotesk';font-size:10px;font-weight:700;color:#a855f7;background:rgba(9,15,28,.88);padding:3px 8px;border-radius:5px;border:1px solid #a855f7;white-space:nowrap;box-shadow:0 0 10px rgba(168,85,247,.28);">Marinus Link · Heybridge<br>2030/31</span>`);
+tag(-41.23,145.96,`<span style="font-family:'Space Grotesk';font-size:9px;font-weight:700;color:#059669;background:rgba(9,15,28,.88);padding:3px 7px;border-radius:5px;border:1px dashed #059669;white-space:nowrap;box-shadow:0 0 8px rgba(5,150,105,.25);">── NWTD 2030/31 ──</span>`);
+
+map.fitBounds([[-43.6,144.5],[-40.3,148.5]],{padding:[20,20]});
+</script>
+</body>
+</html>
